@@ -1,27 +1,19 @@
 version: "2"
-name: "Playstore VoC"
+name: "Bling Summarize"
 description: "Creates tickets from Trustpilot customer reviews regarding your company and categorises it and gives you actionable insights"
 
 service_account:
-  display_name: Playstore VoC
-
-keyrings:
-  organization:
-    - name: fireworks_api_key
-      description: API Key for Fireworks, follow https://readme.fireworks.ai/docs/quickstart to get one.
-      types:
-        - snap_in_secret
-      display_name: Fireworks API Key
+  display_name: Bling Summarize
 
 inputs:
   organization:
-    - name: aid
-      description: "The app id of your app on playstore"
+    - name: name
+      description: "The domain of you company on trustpilot website"
       field_type: text
       is_required: true
       default_value: ""
       ui:
-        display_name: App ID
+        display_name: Name
     - name: default_part_id
       description: "Default part under which to create tickets."
       field_type: id
@@ -110,18 +102,18 @@ tags:
   - name: failed_to_infer_category
     description: "Failed to infer category"
 
+
 commands:
-  - name: gplay_voc
+  - name: bling
     namespace: devrev
-    description: Fetches reviews from playstore and creates tickets
+    description: Fetches reviews from trustpilot and creates tickets
     surfaces:
       - surface: discussions
         object_types:
           - snap_in
-    usage_hint: "/gplay_voc [number of reviews to fetch and process]"
-    function: gplay_voc
-
+    usage_hint: "/summarize [number of reviews to fetch and process]"
+    function: summarize
 
 functions:
-  - name: gplay_voc
-    description: Fetches reviews from playstore and creates tickets
+  - name: summarize
+    description: Fetches reviews from trustpilot and creates tickets

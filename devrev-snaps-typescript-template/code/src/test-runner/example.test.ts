@@ -1,4 +1,4 @@
-import { run } from '../functions/g2_voc';
+import { run } from '../functions/summarize';
 
 describe('Test some function', () => {
   it('Something', () => {

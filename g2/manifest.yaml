@@ -89,7 +89,7 @@ inputs:
 tags:
   - name: bug
     description: "This is a bug"
-  - name: comaplaint
+  - name: complaint
     description: "This is a complaint"
   - name: question
     description: "This is a question"
@@ -103,25 +103,24 @@ tags:
     description: "security concern"
   - name: pricing
     description: "pricing"
+  - name: Positive
+    description: "positive"
+  - name: Negative
+    description: "negative"
   - name: failed_to_infer_category
     description: "Failed to infer category"
-  - name: voc
-    description: "voc"
-  - name: g2
-    description: "g2"
 
 commands:
-  - name: g_voc
+  - name: g2_voc
     namespace: devrev
     description: Fetches reviews from G2 and creates tickets
     surfaces:
       - surface: discussions
         object_types:
           - snap_in
-    usage_hint: "/g_voc [number of reviews to fetch and process]"
-    function: g_voc
-
+    usage_hint: "/g2_voc [number of reviews to fetch and process]"
+    function: g2_voc
 
 functions:
-  - name: g_voc
+  - name: g2_voc
     description: Fetches reviews from G2 and creates tickets

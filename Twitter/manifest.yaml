@@ -89,7 +89,7 @@ inputs:
 tags:
   - name: bug
     description: "This is a bug"
-  - name: comaplaint
+  - name: complaint
     description: "This is a complaint"
   - name: question
     description: "This is a question"
@@ -103,13 +103,13 @@ tags:
     description: "security concern"
   - name: pricing
     description: "pricing"
+  - name: Positive
+    description: "positive"
+  - name: Negative
+    description: "negative"
   - name: failed_to_infer_category
     description: "Failed to infer category"
-  - name: voc
-    description: "voc"
-  - name: twitter
-    description: "twitter"
-
+    
 commands:
   - name: twitter_voc
     namespace: devrev

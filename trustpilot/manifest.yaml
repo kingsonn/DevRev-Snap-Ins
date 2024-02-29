@@ -1,7 +1,7 @@
 version: "2"
 name: "Trustpilot VoC"
 description: "Creates tickets from Trustpilot customer reviews regarding your company and categorises it and gives you actionable insights"
-
+ 
 service_account:
   display_name: Trustpilot VoC
 
@@ -12,7 +12,7 @@ keyrings:
       types:
         - snap_in_secret
       display_name: Fireworks API Key
-
+ 
 inputs:
   organization:
     - name: domain
@@ -89,7 +89,7 @@ inputs:
 tags:
   - name: bug
     description: "This is a bug"
-  - name: comaplaint
+  - name: complaint
     description: "This is a complaint"
   - name: question
     description: "This is a question"
@@ -103,12 +103,13 @@ tags:
     description: "security concern"
   - name: pricing
     description: "pricing"
+  - name: Positive
+    description: "positive"
+  - name: Negative
+    description: "negative"
   - name: failed_to_infer_category
     description: "Failed to infer category"
-  - name: voc
-    description: "voc"
-  - name: trustpilot
-    description: "trustpilot"
+
 
 commands:
   - name: trustpilot_voc
@@ -122,6 +123,8 @@ commands:
     function: trustpilot_voc
 
 
+
 functions:
   - name: trustpilot_voc
     description: Fetches reviews from trustpilot and creates tickets
+

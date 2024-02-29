@@ -19,21 +19,8 @@ export const run = async (events: any[]) => {
     const llmUtil: LLMUtils = new LLMUtils(fireWorksApiKey, `accounts/fireworks/models/${inputs['llm_model_to_use']}`, 4200);
     let numReviews = 10;
     let commentID : string | undefined;
-    if (parameters === 'help') { 
-      // Send a help message in CLI help format.
-      const helpMessage = `twitter_voc - Fetch reviews from twitter and create tickets in DevRev.\n\nUsage: /twitter_voc <number_of_reviews_to_fetch>\n\n\`number_of_reviews_to_fetch\`: Number of reviews to fetch from Twitter. Should be a number between 1 and 100. If not specified, it defaults to 10.`;
-      let postResp  = await apiUtil.postTextMessageWithVisibilityTimeout(snapInId, helpMessage, 1);
-      if (!postResp.success) {
-        console.error(`Error while creating timeline entry: ${postResp.message}`);
-        continue;
-      }
-      continue
-    }
-    let postResp: HTTPResponse = await apiUtil.postTextMessageWithVisibilityTimeout(snapInId, 'Fetching reviews from Google playstore', 1);
-    if (!postResp.success) {
-      console.error(`Error while creating timeline entry: ${postResp.message}`);
-      continue;
-    }
+
+
     if (!parameters) {
       // Default to 10 reviews.
       parameters = '10';
@@ -45,23 +32,9 @@ export const run = async (events: any[]) => {
         throw new Error('Not a valid number');
       }
     } catch (err) {
-      postResp  = await apiUtil.postTextMessage(snapInId, 'Please enter a valid number', commentID);
-      if (!postResp.success) {
-        console.error(`Error while creating timeline entry: ${postResp.message}`);
-        continue;
-      }
-      commentID = postResp.data.timeline_entry.id;
+  
     }
-    // Make sure number of reviews is <= 100.
-    if (numReviews > 100) {
-      postResp  = await apiUtil.postTextMessage(snapInId, 'Please enter a number less than 100', commentID);
-      if (!postResp.success) {
-        console.error(`Error while creating timeline entry: ${postResp.message}`);
-        continue;
-      }
-      commentID = postResp.data.timeline_entry.id;
-    }
-    // Call google playstore scraper to fetch those number of reviews.
+
     let getReviewsResponse:any = await gplay.reviews({
       appId: inputs['aid'],
       sort: gplay.sort.RATING,
@@ -69,111 +42,79 @@ export const run = async (events: any[]) => {
       throttle: 10,
     });
 
-  
-    // try {
 
-
-    // } catch (error) {
-    //   if (error instanceof Error) {
-    //     console.log('error message:', error.message);
-    //     return error.message;
-    //   } 
-    // }
-  
-    // Post an update about the number of reviews fetched.
-    postResp  = await apiUtil.postTextMessageWithVisibilityTimeout(snapInId, `Fetched ${numReviews} reviews, creating tickets now.`, 1);
-    if (!postResp.success) {
-      console.error(`Error while creating timeline entry: ${postResp.message}`);
-      continue;
-    }
-    commentID = postResp.data.timeline_entry.id;
     let reviews:gplay.IReviewsItem[] = getReviewsResponse.data;
     // For each review, create a ticket in DevRev.
     // const data = await getData(inputs['company_id'], numReviews)
     for(const review of reviews) {
-      // Post a progress message saying creating ticket for review with review URL posted.
-      postResp  = await apiUtil.postTextMessageWithVisibilityTimeout(snapInId, `Creating ticket for review: ${review.url}`, 1);
-      if (!postResp.success) {
-        console.error(`Error while creating timeline entry: ${postResp.message}`);
-        continue;
-      }
-      const reviewText = `The Review: ${review.text}`;
-      const reviewTitle = review.title || `Ticket created from playstore ${review.url}`;
-      // const reviewID = review.id;
-      const systemPrompt = `you are an expert at cleaning, lablelling, categorising and analysing the given Trustpilot reviews for the company ${inputs['aid']}.You will recieve a review. The output should be json with fields: "Relevance", "Sentiments", "Category", "sub-category", "Severity", "Feature" , "insight", "description", "response" and "review". Under "Relevance" write false if the text is not related to the company or it is a general statement otherwise mention true. Under "Sentiment" mention the sentiment of the tweet. For "Category" mention if is a "bug", "complaint", "general_feedback", "suggestion", "praise", "security_concern", "pricing" or "question". Under "sub-category" if "Category" is "bug" then choose between "blocking", "major", "minor" or "trivial", if "Category is "complaint" choose between "functional", "usability", "performance" or "customer service", if "Category" is "general feedback" then "sub-category" will be "-" , if "Category" is "security concern" then "sub-category" will be "vulnerability" or "privacy issue", if "Category" is "question" then "sub-category" will be "-" , if "Category" is "pricing" then "sub-category" will be "expensive", "cheap" or "value for money", if "Category" is "praise" then "sub-category" will be what benefit was received. Under "Feature" mention the feature that the review is about.Under "Severity" choose between "blocker", "high", "low" or "medium". Under "insight" mention the action elaborately that the company should take based on the review. Under "description" mention the elaborate description of the problem. Under "response" add an elaborate professional response to the customer from the company. Under "review" add the review after removing all links starting with "https://t.co/". Review: ${review.text}`;
-      const humanPrompt = ``;
 
-      let llmResponse = {};
-      try {
-        llmResponse = await llmUtil.chatCompletion(systemPrompt, humanPrompt, {review: (reviewTitle ? reviewTitle + '\n' + reviewText: reviewText)})
-        console.log(llmResponse)
-      } catch (err) {
-        console.error(`Error while calling LLM: ${err}`);
-      }
-    ;
-      let summary = [];
-      let inferredCategory = 'failed_to_infer_category';
-      let desc = 'could not generate'
-      if ('description' in llmResponse){
-        desc = llmResponse['description'] as string
-      }
-      let sen = 'could not generate'
-      if ('Sentiments' in llmResponse){
-        sen = llmResponse['Sentiments'] as string
-      }
-      let sub = 'could not generate'
-      if ('sub-category' in llmResponse){
-        sub = llmResponse['sub-category'] as string
-      }
-      let fea = 'could not generate'
-      if ('Feature' in llmResponse){
-        fea = llmResponse['Feature'] as string
-      }
-      let sam = 'could not generate'
-      if ('response' in llmResponse){
-        sam = llmResponse['response'] as string
-      }
-      let ins = 'could not generate'
-      if ('insight' in llmResponse){
-        ins = llmResponse['insight'] as string
-      }
-      let iss = false
-      if ('Relevance' in llmResponse){
-        iss = llmResponse['Relevance'] as boolean
-      }
-      let sev = 'medium'
-      if ('Severity' in llmResponse){
-        sev = llmResponse['Severity'] as string
-      }
+      const reviewTitle = `Ticket created from Trustpilot: ${review.title || review.url}`;
+      let llmResponse= await fetch('https://api.fireworks.ai/inference/v1/completions', {
+        method: 'POST',
+        headers: {
+          'Accept': "application/json",
+          'Content-Type': "application/json",
+          'Authorization': `Bearer ${fireWorksApiKey}`
+        },
+        body: JSON.stringify({
+          model: "accounts/fireworks/models/mixtral-8x7b-instruct",
+          max_tokens: 4096,
+          top_p: 1,
+          top_k: 40,
+          presence_penalty: 0,
+          frequency_penalty: 0,
+          temperature: 0.6,
+          // type : "json_object" ,
+          response_format: {type: 'json_object'},
+          
+          prompt: `you are an expert at cleaning, lablelling, categorising and analysing the given Trustpilot reviews for the company ${inputs['aid']}. You will recieve a review. The output should be json with fields: "Relevance", "Sentiments", "Category", "sub_category", "Severity", "Feature" , "insight", "description", "response" and "review". Under "Relevance" write false if the text is not related to the company or it is a general statement otherwise mention true. Under "Sentiment" mention the sentiment of the tweet between "Positive" or "Negative". For "Category" choose only between a "bug", "complaint", "general_feedback", "suggestion", "praise", "security_concern", "pricing" or "question". Under "sub_category" if "Category" is "bug" then choose between "blocking", "major", "minor" or "trivial", if "Category is "complaint" choose between "functional", "usability", "performance" or "customer service", if "Category" is "general feedback" then "sub_category" will be "-" , if "Category" is "security_concern" then "sub_category" will be "vulnerability" or "privacy issue", if "Category" is "question" then "sub_category" will be "-" , if "Category" is "pricing" then "sub_category" will be "expensive", "cheap" or "value for money", if "Category" is "praise" then "sub_category" will be what benefit was received. Under "Feature" mention the feature that the review is about.Under "Severity" choose between "Blocker", "High", "Low" or "Medium". Under "insight" mention the action elaborately that the company should take based on the review. Under "description" mention the elaborate description of the problem. Under "response" add an elaborate professional response to the customer from the company. Under "review" add the review after removing all links starting with "https://t.co/". The review: ${review.text}`,
+        })
+      }).then(response => response.json())
+      .then(response => JSON.parse(response.choices[0].text));
     
-      if ('Category' in llmResponse) {
-        inferredCategory = llmResponse['Category'] as string;
-        if (!(inferredCategory in tags)) {
-          inferredCategory = 'failed_to_infer_category';
-        }
+      interface Review {
+        Relevance: boolean;
+        Sentiments: string;
+        Category: string;
+        sub_category: string;
+        Severity: publicSDK.TicketSeverity;
+        Feature: string;
+        insight: string;
+        description: string;
+        response: string;
+        review: string;
       }
+    let ans:Review = llmResponse
+
+      let inferredCategory = ans.Category;
+     
+      if (!(inferredCategory in tags)) {
+          inferredCategory = 'failed_to_infer_category';
+      } 
+      
       let body= `The review: ${review.text} \n
-      The description: ${desc} \n
+    The description: ${ans.description} \n
       `
-      if(iss=true){
+      
+      if(ans.Relevance=true){
 
       // Create a ticket with title as review title and description as review text.
+    
       const createTicketResp = await apiUtil.createTicket({
         title: reviewTitle,
-        tags: [{id: tags[inferredCategory].id}],
+        tags: [{id: tags[inferredCategory].id},{id: tags[ans.Sentiments].id}],
         body: body,
         type: publicSDK.WorkType.Ticket,
         owned_by: [inputs['default_owner_id']],
         applies_to_part: inputs['default_part_id'],
         // is_spam: iss,
         // source_channel:'Twitter',
-        // severity: sev='medium'?publicSDK.TicketSeverity.Medium: sev='blocker'?publicSDK.TicketSeverity.Blocker:sev='low'?publicSDK.TicketSeverity.Low:publicSDK.TicketSeverity.High 
+        severity: ans.Severity
       });
       if (!createTicketResp.success) {
         console.error(`Error while creating ticket: ${createTicketResp.message}`);
         continue;
       }
-      // Post a message with ticket ID.
       const ticketID = createTicketResp.data.work.id;
       const ticketCreatedMessage = inferredCategory != 'failed_to_infer_category' ? `Created ticket: <${ticketID}> and it is categorized as ${inferredCategory}` : `Created ticket: <${ticketID}> and it failed to be categorized`;
       const postTicketResp: HTTPResponse  = await apiUtil.postTextMessageWithVisibilityTimeout(snapInId, ticketCreatedMessage, 1);
@@ -181,16 +122,17 @@ export const run = async (events: any[]) => {
         console.error(`Error while creating timeline entry: ${postTicketResp.message}`);
         continue;
       }
-      let subcat  = await apiUtil.postTextMessage(ticketID, `Sub-Category: ${sub} `);
-      let sentiment  = await apiUtil.postTextMessage(ticketID, `Overall sentiment: ${sen} `);
-      let feature  = await apiUtil.postTextMessage(ticketID, `Feature affected: ${fea} `);
-      let insight  = await apiUtil.postTextMessage(ticketID, `Actionable insight: ${ins} `);
-      let sample  = await apiUtil.postTextMessage(ticketID, `Sample Response ${sam} `);
+      let subcat  = await apiUtil.postTextMessage(ticketID, `<b>Sub-Category</b>: ${ans.sub_category} `);
+      let sentiment  = await apiUtil.postTextMessage(ticketID, `Overall sentiment: ${ans.Sentiments} `);
+      let feature  = await apiUtil.postTextMessage(ticketID, `Feature discussed: ${ans.Feature} `);
+      let insight  = await apiUtil.postTextMessage(ticketID, `Actionable insight: \n
+    ${ans.insight} \n`);
+      let sample  = await apiUtil.postTextMessage(ticketID, `Sample Response: ${ans.response} `);
+      let smple  = await apiUtil.postTextMessage(ticketID, `<img src="https://quickchart.io/chart?c=%7Btype%3A%27bar%27%2Cdata%3A%7Blabels%3A%5B%27Hello+world%27%2C%27Fo+bar%27%5D%2Cdatasets%3A%5B%7Blabel%3A%27Foo%27%2Cdata%3A%5B1%2C2%5D%7D%5D%7D%7D&w=500&h=300&bkg=%23ffffff&f=png&v=2"></img> `);
     }
   }
-    // Call an LLM to categorize the review as Bug, Feature request, or Question.
-    break
+  
   }
-};
 
+}
 export default run;

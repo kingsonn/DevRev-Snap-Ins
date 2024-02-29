@@ -1,7 +1,8 @@
-import g2_voc from './functions/g2_voc';
-
+import summarize from './functions/summarize';
 export const functionFactory = {
-  g2_voc,
+  // Add your functions here
+  summarize,
+
 } as const;
 
 export type FunctionFactoryType = keyof typeof functionFactory;
